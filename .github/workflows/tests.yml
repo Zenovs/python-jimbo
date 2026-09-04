@@ -30,3 +30,53 @@ jobs:
 
       - name: Tests
         run: python -m pytest -q
+
+  install-im-projekt:
+    name: install.bat im Projektordner
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: install.bat ausführen
+        shell: cmd
+        run: install.bat
+
+      - name: Umgebung prüfen
+        shell: cmd
+        run: |
+          if not exist start.bat exit /b 1
+          .venv\Scripts\python.exe -c "import PySide6, anthropic, keyring; print('Pakete da')"
+          .venv\Scripts\python.exe -m pytest -q
+
+  install-von-null:
+    name: install.bat aus einem leeren Ordner
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # So, wie es jemand tut, der nur install.bat heruntergeladen hat:
+      # das Skript muss sich das Projekt selbst von GitHub holen.
+      - name: install.bat aus einem leeren Ordner starten
+        shell: cmd
+        run: |
+          mkdir "%RUNNER_TEMP%\leer"
+          copy install.bat "%RUNNER_TEMP%\leer\" >nul
+          cd /d "%RUNNER_TEMP%\leer"
+          install.bat
+
+      - name: Heruntergeladene Umgebung prüfen
+        shell: cmd
+        run: |
+          cd /d "%RUNNER_TEMP%\leer\python-jimbo-main"
+          if not exist start.bat exit /b 1
+          .venv\Scripts\python.exe -c "import PySide6, anthropic, keyring; print('Pakete da')"

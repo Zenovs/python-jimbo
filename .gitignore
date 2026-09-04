@@ -29,3 +29,5 @@ Thumbs.db
 .idea/
 selbsttest.log
 selbsttest-fehler.log
+start.bat
+python-jimbo-main/

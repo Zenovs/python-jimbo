@@ -100,6 +100,32 @@ Im Menü **Verlauf** stehen die letzten 20 Aufgaben und lassen sich mit einem
 Klick wieder einsetzen. Bricht ein Programm ab, weil ein Zusatzmodul fehlt,
 bietet die App an, es mit `pip install` nachzuinstallieren.
 
+## Aus dem Quellcode einrichten – ein Befehl
+
+Wenn du nicht die fertige `.exe` willst, sondern den Quellcode mit allen
+Paketen: öffne die Eingabeaufforderung (`cmd`), wechsle in den Ordner, in dem
+das Projekt landen soll, und gib ein:
+
+```
+curl -L -o install.bat https://raw.githubusercontent.com/Zenovs/python-jimbo/main/install.bat && install.bat
+```
+
+`install.bat` sucht Python, lädt das Projekt von GitHub, legt eine virtuelle
+Umgebung an, installiert alle Pakete und schreibt eine `start.bat`. Danach
+startest du die App mit einem Doppelklick auf `start.bat`.
+
+Fehlt Python auf dem Rechner, sagt das Skript das und öffnet die
+Downloadseite – setz bei der Installation den Haken bei
+**«Add python.exe to PATH»** und starte `install.bat` danach neu.
+
+`curl` und `tar` sind seit Windows 10 mit dabei, du musst nichts weiter
+installieren. Liegt das Projekt schon lokal, kannst du `install.bat` auch
+einfach im Projektordner doppelklicken.
+
+> Startet die App nicht und du siehst keinen Grund, dann zeigt ihn dieser
+> Befehl im Projektordner:
+> `.venv\Scripts\python.exe -m jimbo`
+
 ## Selbst bauen
 
 Gebraucht wird Python 3.12 bis 3.14.
@@ -153,6 +179,7 @@ assets/         Symbol und Bildschirmfoto
 tools/          erzeugt aus dem ASCII-Zeichen das Symbol
 tests/          Tests (das SDK wird dabei durch eine Attrappe ersetzt)
 launcher.py     Startskript für PyInstaller
+install.bat     richtet alles auf einem Windows-Rechner ein
 build.ps1       baut die .exe
 ```
 
