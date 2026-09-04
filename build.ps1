@@ -43,11 +43,16 @@ Write-Host "Baue die .exe ..." -ForegroundColor Cyan
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller ist fehlgeschlagen." }
 
 Write-Host "Pruefe, ob die .exe startet ..." -ForegroundColor Cyan
+# Ein GUI-Programm laeuft in PowerShell nebenher weiter: ohne
+# Start-Process -Wait gibt es weder Warten noch $LASTEXITCODE.
 $env:JIMBO_SELFTEST = "1"
-& "dist\JiimbosPowerApp.exe"
-$code = $LASTEXITCODE
+$lauf = Start-Process -FilePath "dist\JiimbosPowerApp.exe" -Wait -PassThru `
+          -RedirectStandardOutput selbsttest.log `
+          -RedirectStandardError selbsttest-fehler.log
 Remove-Item Env:\JIMBO_SELFTEST
-if ($code -ne 0) { throw "Die gebaute .exe startet nicht (Exit-Code $code)." }
+Get-Content selbsttest.log, selbsttest-fehler.log -ErrorAction SilentlyContinue | Write-Host
+Remove-Item selbsttest.log, selbsttest-fehler.log -ErrorAction SilentlyContinue
+if ($lauf.ExitCode -ne 0) { throw "Die gebaute .exe startet nicht (Exit-Code $($lauf.ExitCode))." }
 
 $groesse = [math]::Round((Get-Item "dist\JiimbosPowerApp.exe").Length / 1MB, 1)
 Write-Host "Fertig: dist\JiimbosPowerApp.exe ($groesse MB)" -ForegroundColor Green

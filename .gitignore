@@ -27,3 +27,5 @@ jimbo_settings.json
 Thumbs.db
 .vscode/
 .idea/
+selbsttest.log
+selbsttest-fehler.log

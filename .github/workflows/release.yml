@@ -47,8 +47,13 @@ jobs:
         env:
           JIMBO_SELFTEST: "1"
         run: |
-          & "dist\JiimbosPowerApp.exe"
-          if ($LASTEXITCODE -ne 0) { throw "Die .exe startet nicht (Exit-Code $LASTEXITCODE)." }
+          # Ein GUI-Programm laeuft in PowerShell nebenher weiter: ohne
+          # Start-Process -Wait gibt es weder Warten noch $LASTEXITCODE.
+          $lauf = Start-Process -FilePath "dist\JiimbosPowerApp.exe" -Wait -PassThru `
+                    -RedirectStandardOutput selbsttest.log `
+                    -RedirectStandardError selbsttest-fehler.log
+          Get-Content selbsttest.log, selbsttest-fehler.log -ErrorAction SilentlyContinue | Write-Host
+          if ($lauf.ExitCode -ne 0) { throw "Die .exe startet nicht (Exit-Code $($lauf.ExitCode))." }
           $mb = [math]::Round((Get-Item "dist\JiimbosPowerApp.exe").Length / 1MB, 1)
           Write-Host "JiimbosPowerApp.exe ist $mb MB gross."
 
