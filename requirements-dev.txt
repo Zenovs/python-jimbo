@@ -1,0 +1,4 @@
+# Zusätzliche Pakete zum Testen und Bauen (zum Benutzen der App nicht nötig).
+# Installation:  pip install -r requirements.txt -r requirements-dev.txt
+pytest==9.1.1
+pyinstaller==6.22.2

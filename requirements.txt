@@ -1,0 +1,5 @@
+# Laufzeit-Abhängigkeiten von Jiimbos Power App (gepinnt).
+# Installation:  pip install -r requirements.txt
+anthropic==1.3.0
+PySide6==6.11.2
+keyring==25.7.0

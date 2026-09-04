@@ -1,0 +1,29 @@
+# Virtuelle Umgebungen
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Lokale Einstellungen / Nutzerdaten (gehoeren nie ins Repo)
+*.log
+.env
+.env.*
+jimbo_settings.json
+
+# Betriebssystem / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
