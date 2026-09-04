@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
@@ -24,13 +26,24 @@ def fenster(qt_app, monkeypatch):
     w.close()
 
 
-def _warte_auf_anfrage(qt_app, fenster, versuche=2000):
-    """Wartet, bis der Hintergrund-Thread fertig ist."""
-    for _ in range(versuche):
-        if fenster._thread is None:
+def _warte_bis(qt_app, bedingung, sekunden=30.0):
+    """Wartet auf eine Bedingung – nach Uhrzeit, nicht nach Durchläufen.
+
+    Eine Schleife über eine feste Zahl von Durchläufen ist auf schnellen
+    Rechnern durch, bevor der Kindprozess überhaupt etwas ausgegeben hat.
+    """
+    ende = time.monotonic() + sekunden
+    while time.monotonic() < ende:
+        if bedingung():
             return True
         qt_app.processEvents()
-    return False
+        time.sleep(0.005)
+    return bedingung()
+
+
+def _warte_auf_anfrage(qt_app, fenster):
+    """Wartet, bis der Hintergrund-Thread fertig ist."""
+    return _warte_bis(qt_app, lambda: fenster._thread is None)
 
 
 def _programm(code="print('hallo')", filename="hallo.py", explanation="Gibt hallo aus."):
@@ -255,11 +268,13 @@ def test_ausfuehren_zeigt_die_ausgabe(qt_app, fenster, monkeypatch, tmp_path):
     fenster.feld_code.setPlainText("print('aus dem Programm')")
     fenster.knopf_ausfuehren.click()
 
-    for _ in range(3000):
-        if not fenster.lauf.laeuft() and "Programm beendet" in fenster.feld_ausgabe.toPlainText():
-            break
-        qt_app.processEvents()
+    fertig = _warte_bis(
+        qt_app,
+        lambda: not fenster.lauf.laeuft()
+        and "Programm beendet" in fenster.feld_ausgabe.toPlainText(),
+    )
 
+    assert fertig, f"Zeitüberschreitung, Ausgabe war: {fenster.feld_ausgabe.toPlainText()!r}"
     assert "aus dem Programm" in fenster.feld_ausgabe.toPlainText()
     assert fenster.reiter.currentIndex() == 1
 
