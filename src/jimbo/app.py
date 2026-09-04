@@ -763,6 +763,16 @@ class MainWindow(QMainWindow):
         modul = runner.fehlendes_modul(self._lauf_puffer)
         if not modul:
             return
+
+        if not runner.mit_pip_installierbar(modul):
+            QMessageBox.information(
+                self,
+                "Modul fehlt",
+                f"Das Programm braucht «{modul}».\n\n"
+                + runner.rat_zu_modul(modul),
+            )
+            return
+
         antwort = QMessageBox.question(
             self,
             "Modul fehlt",

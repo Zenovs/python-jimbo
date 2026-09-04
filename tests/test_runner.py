@@ -155,3 +155,42 @@ def test_endlosprogramm_laesst_sich_stoppen(qt_app, python_befehl, tmp_path):
 
     lauf.stoppe()
     assert not lauf.laeuft()
+
+
+# --------------------------------------------------------------------------
+# Module, die pip nicht installieren kann
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "ausgabe, erwartet",
+    [
+        # Der C-Teil heisst "_tkinter" – gemeint ist immer "tkinter".
+        ("ModuleNotFoundError: No module named '_tkinter'", "tkinter"),
+        ("ModuleNotFoundError: No module named 'tkinter'", "tkinter"),
+        ("ModuleNotFoundError: No module named '_sqlite3'", "sqlite3"),
+        ("ModuleNotFoundError: No module named 'requests'", "requests"),
+    ],
+)
+def test_interne_namen_werden_zurueckgefuehrt(ausgabe, erwartet):
+    assert runner.fehlendes_modul(ausgabe) == erwartet
+
+
+@pytest.mark.parametrize(
+    "modul, installierbar",
+    [
+        ("requests", True),
+        ("matplotlib", True),
+        ("pandas", True),
+        ("tkinter", False),
+        ("turtle", False),
+        ("sqlite3", False),
+        ("_irgendwas", False),
+    ],
+)
+def test_was_pip_installieren_kann(modul, installierbar):
+    assert runner.mit_pip_installierbar(modul) is installierbar
+
+
+def test_rat_zu_tkinter_nennt_python_org():
+    assert "python.org" in runner.rat_zu_modul("tkinter")
+    assert "pip" in runner.rat_zu_modul("irgendwas_internes")

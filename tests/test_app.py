@@ -340,3 +340,28 @@ def test_nach_pip_install_wird_nicht_erneut_gefragt(fenster, monkeypatch):
     assert gefragt == []
     assert fenster._lauf_art == "programm"
     assert "Modul installiert" in fenster.feld_ausgabe.toPlainText()
+
+
+def test_tkinter_wird_erklaert_statt_mit_pip_angeboten(fenster, monkeypatch):
+    """pip install tkinter kann nie klappen – also gar nicht erst anbieten."""
+    gefragt, erklaert = [], []
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **kw: gefragt.append(a[2]))
+    monkeypatch.setattr(
+        QMessageBox, "information", lambda *a, **kw: erklaert.append(a[2])
+    )
+    fenster._lauf_puffer = "ModuleNotFoundError: No module named '_tkinter'"
+    fenster._biete_modul_an()
+
+    assert gefragt == []
+    assert erklaert and "python.org" in erklaert[0]
+
+
+def test_matplotlib_wird_weiterhin_angeboten(fenster, monkeypatch):
+    gefragt = []
+    monkeypatch.setattr(
+        QMessageBox, "question",
+        lambda *a, **kw: gefragt.append(a[2]) or QMessageBox.StandardButton.No,
+    )
+    fenster._lauf_puffer = "ModuleNotFoundError: No module named 'matplotlib'"
+    fenster._biete_modul_an()
+    assert gefragt and "pip install matplotlib" in gefragt[0]

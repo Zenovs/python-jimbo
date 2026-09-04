@@ -61,12 +61,56 @@ def finde_python(erneut: bool = False) -> list[str] | None:
     return _gefundenes_python
 
 
+# Diese Module gehören zu Python selbst. Fehlen sie, wurde Python ohne sie
+# gebaut – "pip install" hilft dann nicht weiter, es braucht eine andere
+# Python-Installation oder ein Systempaket.
+NICHT_PER_PIP = {
+    "tkinter", "turtle", "sqlite3", "ssl", "curses", "lzma", "bz2",
+    "ctypes", "readline", "zlib", "decimal", "dbm", "uuid",
+}
+
+# Hinweis für die häufigsten dieser Fälle.
+RAT_ZU_MODUL = {
+    "tkinter": "Dieses Python wurde ohne Tk-Unterstützung gebaut. Die "
+               "Installationsdatei von python.org bringt tkinter mit; unter "
+               "Linux heisst das Paket meist python3-tk.",
+    "turtle": "turtle braucht tkinter. Dieses Python wurde ohne Tk-"
+              "Unterstützung gebaut – die Installationsdatei von python.org "
+              "bringt es mit.",
+}
+
+
 def fehlendes_modul(ausgabe: str) -> str | None:
-    """Liest aus einer Fehlerausgabe den Namen des fehlenden Moduls."""
+    """Liest aus einer Fehlerausgabe den Namen des fehlenden Moduls.
+
+    Interne Namen wie `_tkinter` werden auf den Namen zurückgeführt, den
+    Nutzer kennen (`tkinter`).
+    """
     treffer = _FEHLENDES_MODUL.search(ausgabe)
     if not treffer:
         return None
-    return treffer.group(1).split(".")[0]
+    name = treffer.group(1).split(".")[0]
+    # "_tkinter" ist der C-Teil von "tkinter" – gemeint ist immer das Modul
+    # ohne Unterstrich.
+    ohne_strich = name.lstrip("_")
+    if ohne_strich in NICHT_PER_PIP:
+        return ohne_strich
+    return name
+
+
+def mit_pip_installierbar(modul: str) -> bool:
+    """Lässt sich das Modul überhaupt mit pip nachinstallieren?"""
+    return not modul.startswith("_") and modul not in NICHT_PER_PIP
+
+
+def rat_zu_modul(modul: str) -> str:
+    """Was der Nutzer tun kann, wenn pip nicht weiterhilft."""
+    return RAT_ZU_MODUL.get(
+        modul,
+        f"«{modul}» gehört zu Python selbst und lässt sich nicht mit pip "
+        "nachinstallieren. Vermutlich wurde dieses Python ohne das Modul "
+        "gebaut – versuch es mit einer Installation von python.org.",
+    )
 
 
 def _umgebung() -> QProcessEnvironment:
