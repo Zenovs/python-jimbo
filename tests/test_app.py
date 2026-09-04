@@ -365,3 +365,119 @@ def test_matplotlib_wird_weiterhin_angeboten(fenster, monkeypatch):
     fenster._lauf_puffer = "ModuleNotFoundError: No module named 'matplotlib'"
     fenster._biete_modul_an()
     assert gefragt and "pip install matplotlib" in gefragt[0]
+
+
+# --------------------------------------------------------------------------
+# Grafik-Reiter
+# --------------------------------------------------------------------------
+
+def test_grafik_reiter_ist_anfangs_leer(fenster):
+    assert fenster.reiter.count() == 3
+    assert fenster.reiter.tabText(2) == "Grafik"
+    assert fenster.bildanzeige.pfad is None
+
+
+def test_erzeugtes_bild_landet_im_grafik_reiter(qt_app, fenster, tmp_path):
+    """Ein Programm, das ein Bild schreibt, zeigt es danach in der App."""
+    python = app.runner.finde_python()
+    if python is None:
+        pytest.skip("Kein Python zum Ausführen gefunden.")
+
+    quelle = settings.resource_path("assets/screenshot.png")
+    skript = tmp_path / "zeichne.py"
+    inhalt = (
+        "import shutil\n"
+        f'shutil.copy(r"{quelle}", "diagramm.png")\n'
+        'print("Bild gezeichnet")\n'
+    )
+    skript.write_text(inhalt, encoding="utf-8")
+
+    fenster.konfig.run_warning_acknowledged = True
+    fenster.datei = skript
+    fenster.feld_code.setPlainText(inhalt)
+    fenster.knopf_ausfuehren.click()
+
+    fertig = _warte_bis(
+        qt_app,
+        lambda: not fenster.lauf.laeuft()
+        and "Programm beendet" in fenster.feld_ausgabe.toPlainText(),
+    )
+    assert fertig, fenster.feld_ausgabe.toPlainText()
+
+    assert fenster.bildanzeige.pfad is not None
+    assert fenster.bildanzeige.pfad.name == "diagramm.png"
+    # Die App springt von selbst auf den Reiter mit dem Bild.
+    assert fenster.reiter.currentWidget() is fenster.bildanzeige
+
+
+def test_altes_bild_wird_vor_dem_lauf_weggeraeumt(fenster, tmp_path):
+    fenster.bildanzeige.zeige(settings.resource_path("assets/screenshot.png"))
+    assert fenster.bildanzeige.pfad is not None
+
+    fenster.bildanzeige.leeren()
+    assert fenster.bildanzeige.pfad is None
+
+
+def test_bildanzeige_meldet_undarstellbare_datei(qt_app, tmp_path):
+    from jimbo.bildanzeige import Bildanzeige
+
+    kaputt = tmp_path / "keine_echte.png"
+    kaputt.write_bytes(b"das ist kein Bild")
+    anzeige = Bildanzeige()
+
+    assert anzeige.zeige(kaputt) is False
+    # Trotzdem merkt sie sich die Datei, damit man sie extern öffnen kann.
+    assert anzeige.pfad == kaputt
+
+
+def test_waehrend_pip_wird_kein_bild_gesucht(fenster, monkeypatch):
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **kw: QMessageBox.StandardButton.Yes)
+    monkeypatch.setattr(app.runner, "finde_python", lambda erneut=False: ["python3"])
+    monkeypatch.setattr(fenster.lauf, "starte_pip_install", lambda *a: None)
+
+    fenster._lauf_puffer = "ModuleNotFoundError: No module named 'matplotlib'"
+    fenster._biete_modul_an()
+    assert fenster._lauf_ordner is None
+
+
+def _sichtbares_fenster(qt_app, fenster, aufteilung):
+    """QSplitter beschneidet setSizes, solange das Fenster nicht sichtbar ist."""
+    fenster.resize(1000, 700)
+    fenster.show()
+    qt_app.processEvents()
+    fenster.teiler.setSizes(aufteilung)
+    qt_app.processEvents()
+    return fenster.teiler.sizes()
+
+
+def test_platz_fuer_das_bild_wird_geschaffen(qt_app, fenster):
+    """Ein Diagramm in einem flachen Streifen nuetzt niemandem."""
+    vorher = _sichtbares_fenster(qt_app, fenster, [150, 400, 120])
+
+    fenster._mache_platz_fuer_bild()
+    nachher = fenster.teiler.sizes()
+
+    assert nachher[2] > vorher[2], "Der untere Bereich muss wachsen."
+    assert nachher[1] >= 140, "Der Code-Bereich darf nicht zusammenfallen."
+    assert sum(nachher) == sum(vorher), "Die Gesamthöhe bleibt gleich."
+
+
+def test_platz_bleibt_wie_er_ist_wenn_er_schon_reicht(qt_app, fenster):
+    vorher = _sichtbares_fenster(qt_app, fenster, [100, 150, 450])
+    fenster._mache_platz_fuer_bild()
+    assert fenster.teiler.sizes() == vorher
+
+
+def test_doppelklick_oeffnet_das_bild_gross(qt_app, monkeypatch):
+    from jimbo import bildanzeige as ba
+
+    geoeffnet = []
+    monkeypatch.setattr(
+        ba.QDesktopServices, "openUrl", lambda url: geoeffnet.append(url.toLocalFile())
+    )
+    anzeige = ba.Bildanzeige()
+    pfad = settings.resource_path("assets/screenshot.png")
+    anzeige.zeige(pfad)
+    anzeige._bild.doppelklick.emit()
+
+    assert geoeffnet and geoeffnet[0].endswith("screenshot.png")

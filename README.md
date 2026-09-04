@@ -75,11 +75,26 @@ Installation den Haken bei «Add python.exe to PATH».
 2. **In der Mitte** steht der Code mit Zeilennummern und Farben. Du kannst ihn
    von Hand ändern. Die Knöpfe: **Speichern** (als `.py`), **Ausführen**,
    **Stoppen**, **Kopieren**.
-3. **Unten** steht im Reiter *Erklärung*, was das Programm macht, und im Reiter
-   *Ausgabe*, was es beim Laufen ausgibt. Braucht das Programm eine Eingabe
+3. **Unten** steht im Reiter *Erklärung*, was das Programm macht, im Reiter
+   *Ausgabe*, was es beim Laufen ausgibt, und im Reiter *Grafik* das Bild, falls
+   das Programm eines gezeichnet hat. Braucht das Programm eine Eingabe
    (`input()`), tippst du sie ins Feld darunter.
 4. Passt etwas nicht, beschreibst du im Feld ganz unten die Änderung und
    klickst auf **Ändern**.
+
+### Diagramme und Zeichnungen
+
+Verlang einfach ein Bild: «Zeichne ein Balkendiagramm mit dem Niederschlag pro
+Monat» oder «Stell diese Messwerte als Liniendiagramm dar». Dafür wird
+`matplotlib` verwendet – fehlt es auf dem Rechner, bietet die App an, es mit
+einem Klick nachzuinstallieren.
+
+![Ein Diagramm im Reiter Grafik](assets/screenshot_grafik.png)
+
+Das fertige Bild erscheint im Reiter **Grafik**, und zwar schon während das
+Programm noch läuft. Ein **Doppelklick** öffnet es in voller Grösse im
+Bildbetrachter deines Systems. Gespeichert wird es als Datei neben dem
+Programm, du kannst es also weiterverwenden.
 
 Im Menü **Verlauf** stehen die letzten 20 Aufgaben und lassen sich mit einem
 Klick wieder einsetzen. Bricht ein Programm ab, weil ein Zusatzmodul fehlt,
@@ -131,7 +146,8 @@ src/jimbo/
   app.py        Fenster, Dialoge, Bedienung
   api.py        Anfrage an die Anthropic-API, Prompt, Auswertung der Antwort
   editor.py     Code-Feld mit Zeilennummern und Einfärbung
-  runner.py     erzeugten Code ausführen, fehlende Module erkennen
+  bildanzeige.py  zeigt Diagramme, die ein Programm gezeichnet hat
+  runner.py     erzeugten Code ausführen, fehlende Module und Bilder erkennen
   settings.py   API-Key (keyring), Modell, Pfade, Verlauf
 assets/         Symbol und Bildschirmfoto
 tools/          erzeugt aus dem ASCII-Zeichen das Symbol

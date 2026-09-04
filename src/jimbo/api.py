@@ -33,6 +33,13 @@ Regeln:
   Standardbibliothek. Externe Module nur, wenn die Aufgabe es wirklich
   verlangt; dann steht als allererste Zeile des Codes ein Kommentar der Form
   "# pip install modulname".
+- Geht es um ein Diagramm, eine Zeichnung oder sonst ein Bild, ist matplotlib
+  das richtige Werkzeug – dafür ist ein externes Modul ausdrücklich erwünscht.
+  Weiche nicht auf ASCII-Grafik oder tkinter aus, nur um das Modul zu sparen.
+  Solche Programme speichern das Bild immer zuerst mit
+  plt.savefig("sprechender_name.png") und zeigen es erst danach mit plt.show()
+  an – nach show() ist die Zeichenfläche leer und die Datei bliebe weiss.
+  Beschrifte Achsen und Titel auf Deutsch.
 - Die Kommentare im Code sind auf Deutsch und für Einsteiger verständlich.
   Erkläre darin, was ein Abschnitt tut, nicht wie Python funktioniert.
 - Der Code fragt nichts ab, was die Aufgabe nicht verlangt, und läuft ohne

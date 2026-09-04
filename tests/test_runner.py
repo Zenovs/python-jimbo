@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import sys
+import time
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QCoreApplication
@@ -194,3 +196,53 @@ def test_was_pip_installieren_kann(modul, installierbar):
 def test_rat_zu_tkinter_nennt_python_org():
     assert "python.org" in runner.rat_zu_modul("tkinter")
     assert "pip" in runner.rat_zu_modul("irgendwas_internes")
+
+
+# --------------------------------------------------------------------------
+# Bilder finden, die ein Programm gezeichnet hat
+# --------------------------------------------------------------------------
+
+def test_neue_bilder_findet_nur_neues(tmp_path):
+    alt = tmp_path / "altes_bild.png"
+    alt.write_bytes(b"x")
+    os.utime(alt, (1000, 1000))  # deutlich in der Vergangenheit
+
+    seit = time.time()
+    neu = tmp_path / "diagramm.png"
+    neu.write_bytes(b"x")
+
+    gefunden = runner.neue_bilder(tmp_path, seit)
+    assert gefunden == [neu]
+
+
+def test_neue_bilder_ignoriert_andere_dateien(tmp_path):
+    seit = time.time()
+    (tmp_path / "programm.py").write_text("x", encoding="utf-8")
+    (tmp_path / "daten.csv").write_text("x", encoding="utf-8")
+    bild = tmp_path / "plot.png"
+    bild.write_bytes(b"x")
+
+    assert runner.neue_bilder(tmp_path, seit) == [bild]
+
+
+def test_neue_bilder_neuestes_zuerst(tmp_path):
+    seit = time.time()
+    erstes = tmp_path / "eins.png"
+    erstes.write_bytes(b"x")
+    os.utime(erstes, (seit, seit))
+    zweites = tmp_path / "zwei.png"
+    zweites.write_bytes(b"x")
+    os.utime(zweites, (seit + 5, seit + 5))
+
+    assert runner.neue_bilder(tmp_path, seit) == [zweites, erstes]
+
+
+def test_neue_bilder_kennt_die_ueblichen_endungen(tmp_path):
+    seit = time.time()
+    for name in ["a.png", "b.JPG", "c.svg", "d.gif"]:
+        (tmp_path / name).write_bytes(b"x")
+    assert len(runner.neue_bilder(tmp_path, seit)) == 4
+
+
+def test_neue_bilder_bei_fehlendem_ordner():
+    assert runner.neue_bilder(Path("/gibt/es/nicht"), 0.0) == []

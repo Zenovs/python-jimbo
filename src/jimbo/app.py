@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -38,6 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import APP_NAME, APP_SLUG, ASCII_LOGO, __version__, api, runner, settings
+from .bildanzeige import Bildanzeige
 from .editor import CodeEditor, monospace_font
 
 REPO_URL = "https://github.com/Zenovs/python-jimbo"
@@ -215,6 +217,14 @@ class MainWindow(QMainWindow):
         self.lauf.beendet.connect(self._lauf_beendet)
         self._lauf_puffer = ""
         self._lauf_art = "programm"
+        self._lauf_ordner: Path | None = None
+        self._lauf_start = 0.0
+        self._gezeigtes_bild: Path | None = None
+
+        # Sucht waehrend des Laufs nach Bildern, die das Programm zeichnet.
+        self._bild_timer = QTimer(self)
+        self._bild_timer.setInterval(700)
+        self._bild_timer.timeout.connect(self._pruefe_bilder)
 
         self._baue_oberflaeche()
         self._baue_menue()
@@ -234,6 +244,7 @@ class MainWindow(QMainWindow):
         teiler.setStretchFactor(1, 1)
         teiler.setStretchFactor(2, 0)
         teiler.setSizes([150, 350, 200])
+        self.teiler = teiler
         self.setCentralWidget(teiler)
 
     def _bereich_aufgabe(self) -> QWidget:
@@ -329,9 +340,12 @@ class MainWindow(QMainWindow):
         aussen_ausgabe.addWidget(self.feld_ausgabe)
         aussen_ausgabe.addLayout(zeile_eingabe)
 
+        self.bildanzeige = Bildanzeige()
+
         self.reiter = QTabWidget()
         self.reiter.addTab(self.feld_erklaerung, "Erklärung")
         self.reiter.addTab(seite_ausgabe, "Ausgabe")
+        self.reiter.addTab(self.bildanzeige, "Grafik")
 
         self.feld_aenderung = QPlainTextEdit()
         self.feld_aenderung.setPlaceholderText(
@@ -650,6 +664,14 @@ class MainWindow(QMainWindow):
         self.reiter.setCurrentIndex(1)
         self._zeige_laufzustand(True)
         self._setze_status(f"Läuft mit {' '.join(python)}")
+
+        # Ab jetzt gilt jedes neue Bild im Ordner als Werk des Programms.
+        self.bildanzeige.leeren()
+        self._gezeigtes_bild = None
+        self._lauf_ordner = ziel.parent
+        self._lauf_start = time.time()
+        self._bild_timer.start()
+
         self.lauf.starte_skript(python, ziel)
 
     def _warnung_bestaetigt(self) -> bool:
@@ -735,6 +757,8 @@ class MainWindow(QMainWindow):
     @Slot(int)
     def _lauf_beendet(self, code: int) -> None:
         self._zeige_laufzustand(False)
+        self._bild_timer.stop()
+        self._pruefe_bilder()
         if self._lauf_art == "pip":
             # Nach einer Installation nicht noch einmal dieselbe Frage stellen.
             self._lauf_art = "programm"
@@ -757,6 +781,43 @@ class MainWindow(QMainWindow):
             self._schreibe_ausgabe(f"\n[Programm mit Fehler beendet (Code {code}).]\n")
             self._setze_status(f"Programm mit Fehler beendet (Code {code})")
         self._biete_modul_an()
+
+    def _pruefe_bilder(self) -> None:
+        """Zeigt ein Bild, sobald das laufende Programm eines geschrieben hat."""
+        if self._lauf_ordner is None:
+            return
+        bilder = runner.neue_bilder(self._lauf_ordner, self._lauf_start)
+        if not bilder or bilder[0] == self._gezeigtes_bild:
+            return
+
+        erstes = self._gezeigtes_bild is None
+        # Schlaegt das Anzeigen fehl, wird die Datei vielleicht gerade noch
+        # geschrieben - dann beim naechsten Mal noch einmal versuchen.
+        if self.bildanzeige.zeige(bilder[0]):
+            self._gezeigtes_bild = bilder[0]
+            if erstes:
+                self.reiter.setCurrentWidget(self.bildanzeige)
+                self._mache_platz_fuer_bild()
+
+    def _mache_platz_fuer_bild(self) -> None:
+        """Vergroessert den unteren Bereich, damit das Bild etwas hergibt.
+
+        Der Code-Bereich behaelt dabei eine brauchbare Mindesthoehe.
+        """
+        groessen = self.teiler.sizes()
+        if len(groessen) != 3:
+            return
+        gewuenscht = int(sum(groessen) * 0.55)
+        if groessen[2] >= gewuenscht:
+            return
+        # Der Code-Bereich behaelt mindestens so viel, dass ein kurzes
+        # Programm noch am Stueck lesbar bleibt.
+        abgeben = min(gewuenscht - groessen[2], max(0, groessen[1] - 140))
+        if abgeben <= 0:
+            return
+        self.teiler.setSizes(
+            [groessen[0], groessen[1] - abgeben, groessen[2] + abgeben]
+        )
 
     def _biete_modul_an(self) -> None:
         """Fehlt ein Modul, wird die Installation angeboten."""
@@ -790,6 +851,7 @@ class MainWindow(QMainWindow):
             return
         self._lauf_puffer = ""
         self._lauf_art = "pip"
+        self._lauf_ordner = None
         self._schreibe_ausgabe(f"\n[Installiere {modul} …]\n")
         self._zeige_laufzustand(True)
         self.lauf.starte_pip_install(python, modul, Path.home())

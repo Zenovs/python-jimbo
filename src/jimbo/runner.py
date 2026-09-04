@@ -190,3 +190,39 @@ class Ausfuehrung(QObject):
                 "\n[Python liess sich nicht starten. Ist es noch installiert?]\n"
             )
             self.beendet.emit(-1)
+
+
+# --------------------------------------------------------------------------
+# Bilder finden, die ein Programm erzeugt hat
+# --------------------------------------------------------------------------
+
+BILDENDUNGEN = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg"}
+
+
+def neue_bilder(ordner: Path, seit: float) -> list[Path]:
+    """Bilddateien im Ordner, die seit `seit` geschrieben wurden.
+
+    Damit findet die App das Diagramm, das ein Programm gerade gezeichnet hat.
+    Das neueste Bild steht vorn.
+    """
+    gefunden: list[tuple[float, Path]] = []
+    try:
+        eintraege = list(os.scandir(ordner))
+    except OSError:
+        return []
+
+    for eintrag in eintraege:
+        if not eintrag.is_file():
+            continue
+        if Path(eintrag.name).suffix.lower() not in BILDENDUNGEN:
+            continue
+        try:
+            geaendert = eintrag.stat().st_mtime
+        except OSError:
+            continue
+        # Eine Sekunde Spielraum, weil manche Dateisysteme grob runden.
+        if geaendert >= seit - 1.0:
+            gefunden.append((geaendert, Path(eintrag.path)))
+
+    gefunden.sort(key=lambda paar: paar[0], reverse=True)
+    return [pfad for _, pfad in gefunden]
